@@ -43,24 +43,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandsExplorer.cs" />
+    <Compile Include="Contracts\DefaultDocumentationGenerator.cs" />
+    <Compile Include="Documentation\SCPIDocumentation.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="Classes\Command.cs" />
-    <Compile Include="Classes\DefaultDocumentationGenerator.cs" />
     <Compile Include="Classes\Group.cs" />
-    <Compile Include="Classes\SCPIDocumentation.cs" />
     <Compile Include="Contracts\CommandsFactory.cs" />
     <Compile Include="Contracts\CommonCommandAttribute.cs" />
     <Compile Include="Contracts\ICommand.cs" />
-    <Compile Include="Contracts\IDocumentationGenerator.cs" />
     <Compile Include="Contracts\ParameterAttribute.cs" />
     <Compile Include="Attributes\ArgumentAttribute.cs" />
     <Compile Include="Attributes\CommandAttribute.cs" />
     <Compile Include="Attributes\GroupAttribute.cs" />
     <Compile Include="Attributes\OptionsAttribute.cs" />
-    <Compile Include="ProtocolsImplementation\EnumProtocol.cs" />
+    <Compile Include="Contracts\EnumProtocol.cs" />
     <Compile Include="ProtocolsImplementation\SCPICommandsFactory.cs" />
     <Compile Include="ProtocolsImplementation\WebApiCommandsFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Documentation\WebApiDocumentation.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

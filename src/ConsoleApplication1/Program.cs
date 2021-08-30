@@ -12,24 +12,25 @@ namespace ConsoleApplication1
         static void Main(string[] args)
         {
             CommandsFactory _factory;
-            
+
             _factory = CommandsFactory.GetCommand(EnumProtocol.SCPI);
             _factory.CreateCommandTree(Assembly.GetExecutingAssembly(), "ConsoleApplication1");
 
-            Console.WriteLine(_factory.CreateDocumentation(new SCPIDocumentation()));
+            Console.WriteLine(_factory.CreateDocumentation());
             Console.ReadKey();
         }
     }
 
-    [Group("CONFigure", "CONF", Help ="some help for CONF")]
+    [Group("CONFigure", "CONF", Help = "some help for CONF")]
     public class ConfigureGroup : ICommand
     {
         public void Run(Dictionary<string, string> kwargs)
         {
         }
 
-        [Group("PRES", "PRESsure", Help="help for pressure")]
+        [Group("PRES", "PRESsure", Help = "help for pressure")]
         [Argument("type", "help for config <type>", 1, new string[] { "op1", "op2" })]
+        [Option("some_option", "help for some option", new string[] { "option1", "option2" })]
         public class PressGroup : ICommand
         {
             public void Run(Dictionary<string, string> kwargs)

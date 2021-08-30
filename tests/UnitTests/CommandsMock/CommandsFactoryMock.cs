@@ -43,6 +43,11 @@ namespace UnitTests
             args.RemoveAt(0);
             return args;
         }
+
+        public override string CreateDocumentation()
+        {
+            return "";
+        }
     }
 
 }

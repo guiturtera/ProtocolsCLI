@@ -9,20 +9,10 @@ using UnitTests.TestParameters;
 
 namespace UnitTests
 {
-
-    [TestFixture]
-    public class CommandFactoryTest
+    internal abstract class AbstractCommandFactoryTest 
     {
-        CommandsHandledMock _handler;
-        CommandsFactoryMock _factory;
-        [SetUp]
-        public void Init()
-        {
-            _factory = new CommandsFactoryMock();
-            _factory.CreateCommandTree(Assembly.GetExecutingAssembly(), "UnitTests.TestParameters");
-
-            _handler = CommandsHandledMock.GetInstance();
-        }
+        protected CommandsHandledMock _handler;
+        protected CommandsFactoryMock _factory;
 
         [Test, Description("Asserts that throws a specific exception for the specified namespace.")]
         [TestCase("UnitTests.RepeatedParameterExceptionMock1", typeof(ParameterRepeatedException))]
@@ -37,31 +27,12 @@ namespace UnitTests
             Assert.Throws(exceptionType, () => { _factory.CreateCommandTree(Assembly.GetExecutingAssembly(), namespaceToSearch); });
         }
 
-
-        [Test, Description("Asserts that given some commands, successfully calls them")]
-        [TestCase("CONF:UNIT:OTHER 1 2 3 4", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup), typeof(ConfigureGroup.UnitGroup.OtherCommand) })]
-        [TestCase("CONF:PRES Pt-100", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup) })]
-        [TestCase("CONF:UNIT 1", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup) })]
-        [TestCase("CONF:HELLO", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.Hello) })]
-        [TestCase("CONF", new Type[] { typeof(ConfigureGroup) })]
-        [TestCase("CONF:PRES:ONE_ARGUMENT 55", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup), typeof(ConfigureGroup.PressGroup.OneArgumentCommand) })]
-        [TestCase("CONF:PRES:NO_ARGUMENT", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup), typeof(ConfigureGroup.PressGroup.NoArgumentCommand) })]
-        public void T0002_ExecuteFactoryCommand(string fullCommand, Type[] types)
-        {
-            _factory.ExecuteCommand(fullCommand);
-
-            foreach (var i in types)
-                Assert.That(_handler.RunnedCommands.Contains(i));
-
-            Assert.AreEqual(types.Length, _handler.RunnedCommands.Count);
-        }
-
         [Test, Description("Asserts that delivers the correct Attributes and Options needed.")]
         [TestCase("CONF:UNIT:OTHER 1 2 3 4", new string[] { "table", "other_param", "other_param2", "other_param3" }, new string[] { "option", "option2" })]
         [TestCase("CONF:PRES Pt-100", new string[] { "type" }, new string[] { "option4", "option5" })]
         [TestCase("CONF:UNIT 1", new string[] { "table" }, new string[] { "option" })]
-        [TestCase("CONF:HELLO", new string[] {  }, new string[] {  })]
-        [TestCase("CONF", new string[] {  }, new string[] {  })]
+        [TestCase("CONF:HELLO", new string[] { }, new string[] { })]
+        [TestCase("CONF", new string[] { }, new string[] { })]
         [TestCase("CONF:PRES:ONE_ARGUMENT 55", new string[] { "one_argument" }, new string[] { "option4", "option5" })]
         [TestCase("CONF:PRES:NO_ARGUMENT", new string[] { }, new string[] { "option3" })]
         [TestCase("CONF:UNIT:special_command table_argument", new string[] { "table" }, new string[] { "special_option" })]
@@ -78,7 +49,7 @@ namespace UnitTests
             for (int i = 0; i < _factory.OptionsNeeded.Count; i++)
                 optsReceived[i] = _factory.OptionsNeeded[i].Parameter;
 
-            foreach (var arg in argumentsExpected) 
+            foreach (var arg in argumentsExpected)
             {
                 Assert.That(argsReceived.Contains(arg), "Arguments Expected = " + string.Join("|", argumentsExpected) +
                     "\n  Received = " + string.Join("|", argsReceived));
@@ -127,6 +98,69 @@ namespace UnitTests
         public void Dispose()
         {
             CommandsHandledMock.RestartCommand();
+        }
+    }
+
+    [TestFixture]
+    internal class CommandFactoryTest : AbstractCommandFactoryTest
+    {
+        [SetUp]
+        public void Init()
+        {
+            _factory = new CommandsFactoryMock();
+            _factory.CreateCommandTree(Assembly.GetExecutingAssembly(), "UnitTests.TestParameters");
+
+            _handler = CommandsHandledMock.GetInstance();
+        }
+
+        [Test, Description("Asserts that given some commands, successfully calls them")]
+        [TestCase("CONF:UNIT:OTHER 1 2 3 4", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup), typeof(ConfigureGroup.UnitGroup.OtherCommand) })]
+        [TestCase("CONF:PRES Pt-100", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup) })]
+        [TestCase("CONF:UNIT 1", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup) })]
+        [TestCase("CONF:HELLO", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.Hello) })]
+        [TestCase("CONF", new Type[] { typeof(ConfigureGroup) })]
+        [TestCase("CONF:PRES:ONE_ARGUMENT 55", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup), typeof(ConfigureGroup.PressGroup.OneArgumentCommand) })]
+        [TestCase("CONF:PRES:NO_ARGUMENT", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.PressGroup), typeof(ConfigureGroup.PressGroup.NoArgumentCommand) })]
+        public void T0002_ExecuteFactoryCommand(string fullCommand, Type[] types)
+        {
+            _factory.ExecuteCommand(fullCommand);
+
+            foreach (var i in types)
+                Assert.That(_handler.RunnedCommands.Contains(i));
+
+            Assert.AreEqual(types.Length, _handler.RunnedCommands.Count);
+        }
+
+    }
+
+    [TestFixture]
+    internal class CommandFactoryTestWithCommonCommands : AbstractCommandFactoryTest
+    {
+        [SetUp]
+        public void Init()
+        {
+            _factory = new CommandsFactoryMock();
+            _factory.CreateCommandTree(Assembly.GetExecutingAssembly(), "UnitTests.TestParameters2");
+
+            _handler = CommandsHandledMock.GetInstance();
+        }
+
+        [Test, Description("Asserts that given some commands, successfully calls them")]
+        [TestCase("CONF:UNIT:OTHER 1 2 3 4", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.UnitGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.UnitGroup.OtherCommand) })]
+        [TestCase("CONF:PRES Pt-100", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.PressGroup) })]
+        [TestCase("CONF:UNIT 1", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.UnitGroup) })]
+        [TestCase("CONF:HELLO", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.Hello) })]
+        [TestCase("CONF", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup) })]
+        [TestCase("CONF:PRES:ONE_ARGUMENT 55", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.PressGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.PressGroup.OneArgumentCommand) })]
+        [TestCase("CONF:PRES:NO_ARGUMENT", new Type[] { typeof(UnitTests.TestParameters2.ConfigureGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.PressGroup), typeof(UnitTests.TestParameters2.ConfigureGroup.PressGroup.NoArgumentCommand) })]
+        public void T0002_ExecuteFactoryCommand(string fullCommand, Type[] types)
+        {
+            _factory.ExecuteCommand(fullCommand);
+
+            foreach (var i in types)
+                Assert.That(_handler.RunnedCommands.Contains(i));
+
+            Assert.AreEqual(types.Length, _handler.RunnedCommands.Count);
         }
     }
 }

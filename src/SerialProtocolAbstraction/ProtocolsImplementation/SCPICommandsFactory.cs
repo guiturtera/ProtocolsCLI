@@ -5,6 +5,13 @@ using System.Text;
 
 namespace SerialProtocolAbstraction
 {
+    /// <summary>
+    /// It Receives the full SCPI command, in string format.
+    /// Example: CONF:VOLT mV
+    /// 
+    /// Exceptions:
+    /// NotEnoughArgumentsException
+    /// TooManyArgumentsException
     public class SCPICommandsFactory : CommandsFactory
     {
         #region Singleton
@@ -18,6 +25,12 @@ namespace SerialProtocolAbstraction
             return _instance;
         }
         #endregion
+
+        public override string CreateDocumentation()
+        {
+            var generator = new SCPIDocumentation();
+            return generator.CreateDocumentation(AvailableCommands);
+        }
 
         protected override string[] GetCommands(string fullCommand)
         {

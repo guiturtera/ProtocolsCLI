@@ -135,13 +135,6 @@ namespace UnitTests
             Assert.Throws<CommandNotFoundException>(() => { _factory.ExecuteCommand(fullCommand); });
         }
 
-        [Test, Description("Asserts that throws a successfully returns the documented string.")]
-        public void T0012_CreateDocumentation()
-        {
-            string result = _factory.CreateDocumentation(new DefaultDocumentationGenerator());
-            Assert.AreNotEqual("", result);
-        }
-
         [TearDown]
         public void Dispose() 
         {

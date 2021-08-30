@@ -92,6 +92,13 @@ namespace SerialProtocolAbstraction
         { }
     }
 
+    public class InvalidParameterException : Exception 
+    {
+        public InvalidParameterException(string key)
+            : base(String.Format("Invalid parameter sent: {0}", key))
+        { } 
+    }
+
     /*
     public class NotPrimitiveTypeException : Exception
     {

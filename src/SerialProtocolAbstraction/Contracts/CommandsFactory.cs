@@ -6,6 +6,10 @@ using System.Reflection;
 
 namespace SerialProtocolAbstraction
 {
+    /// <summary>
+    /// It creates and handle of Commands Attributes.
+    /// It's implementations will parse depending in which protocol it is using.
+    /// </summary>
     public abstract class CommandsFactory
     {
         public static CommandsFactory GetCommand(EnumProtocol protocol) 
@@ -23,6 +27,20 @@ namespace SerialProtocolAbstraction
 
         public Command[] AvailableCommands;
 
+        /// <summary>
+        /// Starts the tree based on the Assembly and namespace.
+        ///
+        /// Exceptions:
+        /// ParameterRepeatedException
+        /// CommandRepeatedException
+        /// CommandWithSubcommandsException
+        /// CommandGroupTogetherException
+        /// ICommandWithoutCommandAttributeException
+        /// FactoryCommandTreeNotCreatedException
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <param name="nameSpace"></param>
+        /// <returns></returns>
         public Command[] CreateCommandTree(Assembly assembly, string nameSpace)
         {
             Type[] types = GetTypesInNamespace(assembly, nameSpace).Where(t => t.IsNestedPublic == false).ToArray();
@@ -32,29 +50,31 @@ namespace SerialProtocolAbstraction
 
         protected abstract string[] GetCommands(string fullCommand);
         protected abstract Dictionary<string, string> GetParameters(string fullCommand, List<ArgumentAttribute> arguments, List<OptionAttribute> options);
+        public abstract string CreateDocumentation();
 
-        public string CreateDocumentation(IDocumentationGenerator generator)
-        {
-            return generator.CreateDocumentation(AvailableCommands);
-        }
-
+        /// <summary>
+        /// Exceptions:
+        /// CommandNotFoundException
+        /// MissingArgumentException
+        /// </summary>
+        /// <param name="fullCommand">The command that the implementation will parse</param>
         public void ExecuteCommand(string fullCommand)
         {
             fullCommand = fullCommand.Trim();
-            string[] rawCommands = GetCommands(fullCommand); // must be override
+            string[] rawCommands = GetCommands(fullCommand); // ABSTRACT
 
-            List<Command> commands = ConvertRawCommands(rawCommands); // don't need override
-            List<ArgumentAttribute> argumentsNeeded = GetArgumentsNeeded(commands); // don't need override
-            List<OptionAttribute> optionsNeeded = GetOptionsNeeded(commands);
+            var explorer = new CommandsExplorer(AvailableCommands);
 
-            Dictionary<string, string> kwargs = GetParameters(fullCommand, argumentsNeeded, optionsNeeded); // need override
+            List<Command> commands = explorer.GetCommandListByString(rawCommands);
+            List<ArgumentAttribute> argumentsNeeded = explorer.GetArgumentsForACommandChain(commands);
+            List<OptionAttribute> optionsNeeded = explorer.GetOptionsForACommandChain(commands);
+
+            Dictionary<string, string> kwargs = GetParameters(fullCommand, argumentsNeeded, optionsNeeded); // ABSTRACT
             CheckAllArguments(argumentsNeeded, kwargs);
 
             kwargs.Add("_full_command", fullCommand);
 
             RunCommands(commands, kwargs);
-            
-            //GetCommands(out commands, out parameters, string fullCommand, string delimCommand, string delimParam, bool paramsInFinal);
         }
 
         private void ValidateNeededParameters(List<ArgumentAttribute> argumentsNeeded, List<OptionAttribute> optionsNeeded, string fullCommand)
@@ -169,32 +189,6 @@ namespace SerialProtocolAbstraction
                 throw new ICommandWithoutCommandAttributeException(type);
         }
 
-        private List<OptionAttribute> GetOptionsNeeded(List<Command> commands)
-        {
-            List<OptionAttribute> options = new List<OptionAttribute>();
-            foreach (var cmd in commands)
-            {
-                if (cmd.CommandData.DisableOptionChain)
-                    options.Clear();
-
-                options.AddRange(cmd.Options);
-            }
-            return options;
-        }
-
-        private List<ArgumentAttribute> GetArgumentsNeeded(List<Command> commands)
-        {
-            List<ArgumentAttribute> arguments = new List<ArgumentAttribute>();
-            foreach (var cmd in commands)
-            {
-                if (cmd.CommandData.DisableAttributeChain)
-                    arguments.Clear();
-
-                arguments.AddRange(cmd.Arguments);
-            }
-            return arguments;
-        }
-
         private void RunCommands(List<Command> commands, Dictionary<string, string> kwargs)
         {
             foreach (var cmd in commands)
@@ -202,52 +196,6 @@ namespace SerialProtocolAbstraction
                 ICommand instance = (ICommand)Activator.CreateInstance(cmd.CommandType);
                 instance.Run(kwargs);
             }
-        }
-
-        private bool CommandExists(Command[] commands, string currentCommand, out Command commandFound)
-        {
-            foreach (var command in commands)
-            {
-                foreach (string name in command.CommandData.Names)
-                {
-                    if (name == currentCommand)
-                    {
-                        commandFound = command;
-                        return true;
-                    };
-                }
-            }
-
-            commandFound = null;
-            return false;
-        }
-
-        private List<Command> ConvertRawCommands(string[] commands)
-        {
-            if (AvailableCommands == null)
-                throw new FactoryCommandTreeNotCreatedException();
-
-            List<Command> commandQueue = new List<Command>();
-            Command currentCommand;
-            Command[] nestedCommands = AvailableCommands;
-
-            for (int i = 0; i < commands.Length; i++)
-            {
-                string currentCommandName = commands[i];
-                CommandExists(nestedCommands, currentCommandName, out currentCommand);
-
-                bool exists = CommandExists(nestedCommands, currentCommandName, out currentCommand);
-                if (exists && !(currentCommand.CommandData is CommandAttribute && i != commands.Length - 1))
-                    commandQueue.Add(currentCommand);
-                else
-                    throw new CommandNotFoundException(string.Join(" - ", commands), currentCommandName);
-
-                if (currentCommand is Group)
-                    nestedCommands = (currentCommand as Group).NestedCommands;
-
-            }
-
-            return commandQueue;
         }
 
         private bool HasSubcommands(Command currentCommand)

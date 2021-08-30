@@ -6,6 +6,7 @@ using NUnit.Framework;
 using UnitTests.CommandsMock;
 using SerialProtocolAbstraction;
 using System.Reflection;
+using UnitTests.WebApiCommands;
 
 namespace UnitTests
 {
@@ -24,8 +25,10 @@ namespace UnitTests
         }
 
         [Test, Description("Asserts that given some commands, successfully calls them")]
-        [TestCase("input.cgi?type=Pt-100&table=ITS-90", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup), typeof(ConfigureGroup.UnitGroup.OtherCommand) })]
-        [TestCase("input.cgi?type=Pt-100&table=ITS-90&wires=3", new Type[] { typeof(ConfigureGroup), typeof(ConfigureGroup.UnitGroup), typeof(ConfigureGroup.UnitGroup.OtherCommand) })]
+        [TestCase("input.cgi?constructor_string=Pt-100", new Type[] { typeof(Input) })]
+        [TestCase("input/rtd.cgi?type=Pt-100&table=ITS-90", new Type[] { typeof(Input2), typeof(Input2.RTD) })]
+        [TestCase("input/rtd.cgi?type=Pt-100&table=ITS-90&wires=three", new Type[] { typeof(Input2), typeof(Input2.RTD) })]
+        [TestCase("input/tc.cgi?type=TC-K&table=ITS-90", new Type[] { typeof(Input2), typeof(Input2.TC) })]
         public void T0001_ExecuteFactoryCommand(string fullCommand, Type[] types)
         {
             _factory.ExecuteCommand(fullCommand);
@@ -35,29 +38,25 @@ namespace UnitTests
 
             Assert.AreEqual(types.Length, _handler.RunnedCommands.Count);
         }
-        /*
-        [Test, Description("Asserts that successfully pass the kwargs to commands.")]
-        [TestCase("CONF", new string[] { }, new string[] { })]
-        [TestCase("CONF:HELLO", new string[] { }, new string[] { })]
-        [TestCase("CONF:PRES Pt-100", new string[] { "type" }, new string[] { "Pt-100" })]
-        [TestCase("CONF:UNIT ITS-90", new string[] { "table" }, new string[] { "ITS-90" })]
-        [TestCase("CONF:UNIT:OTHER 1 2 3 4", new string[] { "table", "other_param", "other_param2", "other_param3" }, new string[] { "1", "2", "3", "4" })]
-        [TestCase("CONF:PRES:ONE_ARGUMENT 55", new string[] { "one_argument" }, new string[] { "55" })]
-        [TestCase("CONF:PRES:NO_ARGUMENT", new string[] { }, new string[] { })]
-        public void T0002_ExecuteFactoryCommand(string fullCommand, string[] expectedKeys, string[] expectedValues)
+
+        [Test, Description("Asserts that throws a `MissingArgumentException` when less parameters are sent.")]
+        [TestCase("input.cgi?")]
+        [TestCase("input/rtd.cgi?table=ITS-90")]
+        [TestCase("input/tc.cgi?type=TC-K")]
+        public void T0002_ExecuteFactoryCommand(string fullCommand)
         {
-            _factory.ExecuteCommand(fullCommand);
-            _handler.ArgumentsPassed.Remove("_full_command");
-
-            int expectedLength = expectedKeys.Length;
-            Assert.AreEqual(expectedLength, _handler.ArgumentsPassed.Count);
-
-            for (int i = 0; i < expectedLength; i++)
-            {
-                Assert.IsTrue(_handler.ArgumentsPassed.ContainsKey(expectedKeys[i]));
-                Assert.AreEqual(expectedValues[i], _handler.ArgumentsPassed[expectedKeys[i]]);
-            }
+            Assert.Throws<MissingArgumentException>(() => { _factory.ExecuteCommand(fullCommand); });
         }
+
+        [Test, Description("Asserts that throws a `MissingArgumentException` when less parameters are sent.")]
+        [TestCase("input.cgi?aux=some")]
+        [TestCase("input/rtd.cgi?aux=some")]
+        [TestCase("input/tc.cgi?aux=some")]
+        public void T0003_ExecuteFactoryCommand(string fullCommand)
+        {
+            Assert.Throws<InvalidParameterException>(() => { _factory.ExecuteCommand(fullCommand); });
+        }
+        /*
 
         [Test, Description("Asserts that throws a NotEnoughArgumentsException when less parameters are sent.")]
         [TestCase("CONF:PRES")]
